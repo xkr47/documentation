@@ -400,7 +400,7 @@ The interactive wizard will guide you through basic and necessary options, gener
 
 ### Systemd (Ubuntu only)
 
-We will need three [systemd](https://github.com/systemd/systemd) service files for each Mastodon service.
+We will need three [systemd](https://github.com/systemd/systemd) service files, one for each Mastodon service.
 
 Now switch back to the root user.
 
@@ -488,7 +488,7 @@ systemctl status mastodon-*.service
 
 ### Init scripts (Devuan only)
 
-We will need three service init scriptsfor each Mastodon service.
+We will need three service init scripts, one for each Mastodon service.
 
 Now switch back to the root user.
 
