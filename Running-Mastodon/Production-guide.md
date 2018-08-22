@@ -509,12 +509,13 @@ set -e
 # Short-Description:    Mastodon webserver                                                                                                                                                                                                                                                               
 ### END INIT INFO                                                                                                                                                                                                                                                                                        
 
+SERVICE=mastodon-web
 RAILS_ENV=production
 PORT=3000
 USER=mastodon
 WORKDIR=/home/mastodon/live
 BUNDLE=/home/mastodon/.rbenv/shims/bundle
-PIDFILE=/var/run/mastodon-web.pid
+PIDFILE=/var/run/$SERVICE.pid
 EXEC_CMD=( puma -C config/puma.rb )
 
 [ ! -x "$(which supervise-daemon)" ] || HAS_SUPERVISOR=1
@@ -522,10 +523,10 @@ EXEC_CMD=( puma -C config/puma.rb )
 case "$1" in
     start)
         if [ "$HAS_SUPERVISOR" ]; then
-            supervise-daemon -p $PIDFILE -e RAILS_ENV=$RAILS_ENV -e PORT=$PORT -u $USER -d $WORKDIR --start $BUNDLE -- exec "${EXEC_CMD[@]}"
+            supervise-daemon -p $PIDFILE -e RAILS_ENV=$RAILS_ENV -e PORT=$PORT -u $USER -d $WORKDIR --start $BUNDLE -- exec "${EXEC_CMD[@]}" 2>&1 | logger -t $SERVICE &
         else
             export RAILS_ENV PORT
-            start-stop-daemon -p $PIDFILE --chuid $USER -d $WORKDIR --make-pidfile --background --no-close --start --startas $BUNDLE -- exec "${EXEC_CMD[@]}"
+            start-stop-daemon -p $PIDFILE --chuid $USER -d $WORKDIR --make-pidfile --background --no-close --start --startas $BUNDLE -- exec "${EXEC_CMD[@]}" 2>&1 | logger -t $SERVICE &
         fi
         ;;
 
