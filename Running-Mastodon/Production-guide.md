@@ -396,7 +396,9 @@ The interactive wizard will guide you through basic and necessary options, gener
 
 **The assets precompilation takes a couple minutes, so this is a good time to take another break.**
 
-## Mastodon systemd Service Files
+## Mastodon Service Files
+
+### Systemd (Ubuntu only)
 
 We will need three [systemd](https://github.com/systemd/systemd) service files for each Mastodon service.
 
@@ -482,6 +484,158 @@ Check that they are properly running:
 
 ```sh
 systemctl status mastodon-*.service
+```
+
+### Init scripts (Devuan only)
+
+We will need three service init scriptsfor each Mastodon service.
+
+Now switch back to the root user.
+
+For the [Mastodon](https://github.com/tootsuite/mastodon/) web workers service place the following in `/etc/init.d/mastodon-web`:
+
+```
+#!/bin/bash                                                                                                                                                                                                                                                                                              
+set -e
+
+### BEGIN INIT INFO                                                                                                                                                                                                                                                                                      
+# Provides:             mastodon-web                                                                                                                                                                                                                                                                     
+# Required-Start:       $local_fs $remote_fs $network $time                                                                                                                                                                                                                                              
+# Required-Stop:        $local_fs $remote_fs $network $time                                                                                                                                                                                                                                              
+# Should-Start:         $syslog                                                                                                                                                                                                                                                                          
+# Should-Stop:          $syslog                                                                                                                                                                                                                                                                          
+# Default-Start:        3 4 5                                                                                                                                                                                                                                                                            
+# Default-Stop:         0 1 6                                                                                                                                                                                                                                                                            
+# Short-Description:    Mastodon webserver                                                                                                                                                                                                                                                               
+### END INIT INFO                                                                                                                                                                                                                                                                                        
+
+RAILS_ENV=production
+PORT=3000
+USER=mastodon
+WORKDIR=/home/mastodon/live
+BUNDLE=/home/mastodon/.rbenv/shims/bundle
+PIDFILE=/var/run/mastodon-web.pid
+EXEC_CMD=( puma -C config/puma.rb )
+
+[ ! -x "$(which supervise-daemon)" ] || HAS_SUPERVISOR=1
+
+case "$1" in
+    start)
+        if [ "$HAS_SUPERVISOR" ]; then
+            supervise-daemon -p $PIDFILE -e RAILS_ENV=$RAILS_ENV -e PORT=$PORT -u $USER -d $WORKDIR --start $BUNDLE -- exec "${EXEC_CMD[@]}"
+        else
+            export RAILS_ENV PORT
+            start-stop-daemon -p $PIDFILE --chuid $USER -d $WORKDIR --make-pidfile --background --no-close --start --startas $BUNDLE -- exec "${EXEC_CMD[@]}"
+        fi
+        ;;
+
+    stop)
+        if [ "$HAS_SUPERVISOR" ]; then
+            supervise-daemon -p $PIDFILE --stop
+        else
+            start-stop-daemon -p $PIDFILE --stop --remove-pidfile
+        fi
+        ;;
+
+    restart)
+        $0 stop ||:
+        $0 start
+        ;;
+
+    reload)
+        if [ -s $PIDFILE ]; then
+            /bin/kill -SIGUSR1 "$(cat $PIDFILE)"
+        else
+            echo ERROR: Not running!
+            exit 1
+        fi
+        ;;
+
+    status)
+        if [ ! -s $PIDFILE ]; then
+            echo Not running
+        elif /bin/kill -0 "$(cat $PIDFILE)" ; then
+            echo Running
+        else
+            echo Was running but died
+        fi
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
+```
+
+For [Mastodon](https://github.com/tootsuite/mastodon/) background queue service, place the following in `/etc/init.d/mastodon-sidekiq`:
+
+```
+TODO
+[Unit]
+Description=mastodon-sidekiq
+After=network.target
+
+[Service]
+Type=simple
+User=mastodon
+WorkingDirectory=/home/mastodon/live
+Environment="RAILS_ENV=production"
+Environment="DB_POOL=5"
+ExecStart=/home/mastodon/.rbenv/shims/bundle exec sidekiq -c 5 -q default -q mailers -q pull -q push
+TimeoutSec=15
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+For the [Mastodon](https://github.com/tootsuite/mastodon/) streaming API service place the following in `/etc/init.d/mastodon-streaming`:
+
+```
+TODO
+[Unit]
+Description=mastodon-streaming
+After=network.target
+
+[Service]
+Type=simple
+User=mastodon
+WorkingDirectory=/home/mastodon/live
+Environment="NODE_ENV=production"
+Environment="PORT=4000"
+ExecStart=/usr/bin/npm run start
+TimeoutSec=15
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Now you need to enable all of these services:
+
+```sh
+rc-update add mastodon-web
+rc-update add mastodon-sidekiq
+rc-update add mastodon-streaming
+```
+
+Now start the services:
+
+```sh
+rc-service mastodon-web start
+rc-service mastodon-sidekiq start
+rc-service mastodon-streaming start
+```
+
+Check that they are properly running:
+
+```sh
+rc-service mastodon-web status
+rc-service mastodon-sidekiq status
+rc-service mastodon-streaming status
 ```
 
 ## Remote media attachment cache cleanup
