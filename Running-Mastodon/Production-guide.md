@@ -50,7 +50,7 @@ All dependencies should be installed as root.
 
 ## Extend Ubuntu repositories when using Ubuntu 18.04.1 LTS
 
-Starting with .1-release Ubuntu 18.04.1 LTS (not 18.04), Canonical has removed the multiverse, universe and restricted repository from the sources.list file in /etc/apt/. It is now necessary to add those repositories, otherwise the installation of the following dependencies will fail. Simply run the following commands:
+For Devuan, skip this step. Starting with .1-release Ubuntu 18.04.1 LTS (not 18.04), Canonical has removed the multiverse, universe and restricted repository from the sources.list file in /etc/apt/. It is now necessary to add those repositories, otherwise the installation of the following dependencies will fail. Simply run the following commands:
 
 ```add-apt-repository universe
 add-apt-repository multiverse
